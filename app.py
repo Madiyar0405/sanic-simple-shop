@@ -10,6 +10,7 @@ import jwt
 from quart import redirect
 from dotenv import load_dotenv
 import os
+from sanic.cookies import Cookie
 
 
 load_dotenv()
@@ -39,7 +40,9 @@ DATABASE_CONFIG = {
 async def create_db_connection():
     return await asyncpg.connect(**DATABASE_CONFIG)
 
-
+def get_token_from_cookie(request):
+    token = request.cookies.get('token')
+    return token
 
 def check_token(request):
     if not request.token:
@@ -71,16 +74,17 @@ def protected(wrapped):
     return decorator(wrapped)
 
 
-# Login route
-@app.route('/login', methods=['POST' , 'GET'])
+
+@app.route('/login', methods=['POST', 'GET'])
 async def login(request):
     if request.method == 'GET':
         template = env.get_template('./login.html')
-
         return response.html(template.render())
+
     data = request.form
     username = data.get('username')
     password = data.get('password')
+
     if not username or not password:
         return response.json({'message': 'Username or password is missing'}, status=400)
 
@@ -91,10 +95,14 @@ async def login(request):
     if user:
         token = jwt.encode({'username': username}, app.config.SECRET, algorithm='HS256')
         if token:
-            return response.redirect (f'/products?token={token}') 
+            response_obj = response.redirect(f'/products?token={token}')
+            response_obj.cookies['token'] = token
+            response_obj.cookies['token']['httponly'] = True
+            response_obj.cookies['token']['max-age'] = 3600
+            return response_obj
     else:
         return response.json({'message': 'Invalid username or password'}, status=401)
-    
+
 
 
 async def create_products_table():
@@ -125,8 +133,10 @@ async def profile(request):
 async def products(request):
     template = env.get_template('./products.html')
     token = request.args.get('token')
-    products = await get_products()
+    # products = await get_products()
 
+
+    token = get_token_from_cookie(request)
     if token:
         try:
             payload = jwt.decode(token, app.config.SECRET, algorithms=['HS256'])
@@ -135,10 +145,24 @@ async def products(request):
             return response.html(template.render(username=username, products=products))
         except jwt.ExpiredSignatureError:
             return response.json({'message': 'Expired token'}, status=401)
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError:   
             return response.json({'message': 'Invalid token'}, status=401)
     else:
         return response.json({'message': 'Token is missing'}, status=401)
+
+
+    # if token:
+    #     try:
+    #         payload = jwt.decode(token, app.config.SECRET, algorithms=['HS256'])
+    #         username = payload.get('username')
+    #         products = await get_products()
+    #         return response.html(template.render(username=username, products=products))
+    #     except jwt.ExpiredSignatureError:
+    #         return response.json({'message': 'Expired token'}, status=401)
+    #     except jwt.InvalidTokenError:   
+    #         return response.json({'message': 'Invalid token'}, status=401)
+    # else:
+    #     return response.json({'message': 'Token is missing'}, status=401)
    
 
 
@@ -197,9 +221,6 @@ async def register_user(request):
 #         return decorated_function
 #     return decorator
         
-
-
-
 
 @app.route('/success')
 @protected
