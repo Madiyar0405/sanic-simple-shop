@@ -5,61 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products</title>
     <style>
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
         }
+
         h1 {
             text-align: center;
         }
-        .product {
+
+        .components-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-gap: 20px;
+        }
+
+        .component {
             border: 1px solid #ccc;
             border-radius: 5px;
             padding: 10px;
-            margin-bottom: 20px;
         }
-        .product img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
-        .product-info {
+
+        .component-info {
             padding: 10px 0;
         }
+
         .user-info {
             position: absolute;
             top: 10px;
             left: 10px;
         }
+
+        #manufacturer option {
+            font-size: 16px; /* Размер шрифта */
+            color: #333; /* Цвет текста */
+            background-color: #fff; /* Цвет фона */
+            border: 1px solid #ccc; /* Граница */
+            padding: 5px 10px; /* Отступы внутри элемента */
+        }
     </style>
 </head>
-<body>    
-    <div class="container">
-        <div class="user-info">
-            <a href="/profile">{{username}}</a>
-        </div>
-        <h1>Computer Components</h1>
-        
-        {% for product in products %}
-        <div class="product">
-            <div class="product-info">
-                <h2>{{ product['name'] }}</h2>
-                <p>{{ product['description'] }}</p>
-                <p>Price: ${{ product['price'] }}</p>
-                </div>
-            <form action="/delete_product/{{ product['id'] }}" method="POST">
-                <button type="submit">Delete</button>
-            </form>
-        </div>
-        
-        {% endfor %}
-        
+<body>
+<div class="container">
+    <form action="/admin/products" method="POST">
+        <label for="manufacturer">Select Manufacturer:</label>
+        <select name="manufacturer" id="manufacturer">
+            <option value="">All</option>
+            {% for manufacturer in manufacturers %}
+            <option value="{{ manufacturer }}">{{ manufacturer }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+
+    <div class="user-info">
+        <p>Component Name: {{ component_name }}</p>
+        <p>Sort By: {{ sort_by }}</p>
+        <p>Order: {{ order }}</p>
+        <p>Page: {{ page }}</p>
+        <a href="/admin/profile">{{ user['username'] }}</a>
+        <a href="/logout">logout</a>
     </div>
+    <h1>Computer Components</h1>
+
+    <div class="components-container">
+        {% for component in components %}
+            <div class="component">
+                <div class="component-info">
+                    <h2>{{ component['component_name'] }}</h2>
+                    <p>{{ component['model'] }}</p>
+                    <p>{{ component['manufacturer'] }}</p>
+                    <p>Price: {{ component['price'] }}</p>
+                    <p>Availability: {{ component['availability'] }}</p>
+                </div>
+                <form action="/delete_component/{{ component['id'] }}" method="POST">
+                    <button type="submit">Delete</button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
 </body>
 </html>

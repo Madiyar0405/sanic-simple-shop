@@ -1,9 +1,6 @@
-from sanic import Blueprint, Sanic, response
+from sanic import Blueprint, Sanic, response, text
 from jinja2 import Environment, FileSystemLoader
 import asyncpg
-from sanic_jwt import initialize, exceptions
-from sanic_jwt.decorators import protected
-from sanic import Blueprint, text
 import re
 from functools import wraps
 import jwt
@@ -11,9 +8,19 @@ from quart import redirect
 from dotenv import load_dotenv
 import os
 from sanic.cookies import Cookie
+import bcrypt
+from protected import create_token, protected
+import logging
 
+from server.data.repository.products import get_filtered_sorted_products, get_manufacturers
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+
+USERNAME_REGEX = r'^[a-zA-Z0-9]+$'
 
 
 
@@ -21,12 +28,7 @@ app = Sanic(__name__)
 
 
 
-
-
 app.config.SECRET = os.getenv("SECRET")
-
-
-
 
 env = Environment(loader=FileSystemLoader('templates'))
 
@@ -40,39 +42,18 @@ DATABASE_CONFIG = {
 async def create_db_connection():
     return await asyncpg.connect(**DATABASE_CONFIG)
 
-def get_token_from_cookie(request):
-    token = request.cookies.get('token')
-    return token
 
-def check_token(request):
-    if not request.token:
-        return False
+from server.admin.profile import build_profile_blueprint
+app.blueprint(build_profile_blueprint())
 
-    try:
-        jwt.decode(
-            request.token, request.app.config.SECRET, algorithms=["HS256"]
-        )
-    except jwt.exceptions.InvalidTokenError:
-        return False
-    else:
-        return True
+from server.admin.products import build_products_blueprint
+app.blueprint(build_products_blueprint())
 
-def protected(wrapped):
-    def decorator(f):
-        @wraps(f)
-        async def decorated_function(request, *args, **kwargs):
-            is_authenticated = check_token(request)
+from server.customer.products import build_products_blueprint
+app.blueprint(build_products_blueprint())
 
-            if is_authenticated:
-                response = await f(request, *args, **kwargs)
-                return response
-            else:
-                return text("You are unauthorized.", 401)
-
-        return decorated_function
-
-    return decorator(wrapped)
-
+from server.customer.profile import build_profile_blueprint
+app.blueprint(build_profile_blueprint())
 
 
 @app.route('/login', methods=['POST', 'GET'])
@@ -89,13 +70,16 @@ async def login(request):
         return response.json({'message': 'Username or password is missing'}, status=400)
 
     conn = await create_db_connection()
-    user = await conn.fetchrow('SELECT * FROM users WHERE username = $1 AND password = $2', username, password)
+    user = await conn.fetchrow('SELECT * FROM users WHERE username = $1', username)
     await conn.close()
 
-    if user:
-        token = jwt.encode({'username': username}, app.config.SECRET, algorithm='HS256')
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        token = create_token(user)
         if token:
-            response_obj = response.redirect(f'/products?token={token}')
+            if user['role'] == 'admin':
+                response_obj = response.redirect('/admin/profile')
+            else:
+                response_obj = response.redirect('/customer/profile')
             response_obj.cookies['token'] = token
             response_obj.cookies['token']['httponly'] = True
             response_obj.cookies['token']['max-age'] = 3600
@@ -105,68 +89,13 @@ async def login(request):
 
 
 
-async def create_products_table():
-    conn = await create_db_connection()
-    await conn.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(255),
-            description TEXT,
-            price NUMERIC(10, 2)
-        )   
-    ''')
-    await conn.close()
+@app.route('/logout', methods=['GET'])
+async def logout(request):
+    response_obj = response.redirect('/login')
+    response_obj.cookies['token'] = ''
+    response_obj.cookies['token']['max-age'] = 0
+    return response_obj
 
-async def get_products():
-    conn = await create_db_connection()
-    products = await conn.fetch('SELECT * FROM products')
-    await conn.close()
-    return products
-
-@app.route('/profile')  
-async def profile(request):
-    template = env.get_template('./profile.html')
-    return response.html(template.render())
-
-
-@app.route('/products')
-async def products(request):
-    template = env.get_template('./products.html')
-    token = request.args.get('token')
-    # products = await get_products()
-
-
-    token = get_token_from_cookie(request)
-    if token:
-        try:
-            payload = jwt.decode(token, app.config.SECRET, algorithms=['HS256'])
-            username = payload.get('username')
-            products = await get_products()
-            return response.html(template.render(username=username, products=products))
-        except jwt.ExpiredSignatureError:
-            return response.json({'message': 'Expired token'}, status=401)
-        except jwt.InvalidTokenError:   
-            return response.json({'message': 'Invalid token'}, status=401)
-    else:
-        return response.json({'message': 'Token is missing'}, status=401)
-
-
-    # if token:
-    #     try:
-    #         payload = jwt.decode(token, app.config.SECRET, algorithms=['HS256'])
-    #         username = payload.get('username')
-    #         products = await get_products()
-    #         return response.html(template.render(username=username, products=products))
-    #     except jwt.ExpiredSignatureError:
-    #         return response.json({'message': 'Expired token'}, status=401)
-    #     except jwt.InvalidTokenError:   
-    #         return response.json({'message': 'Invalid token'}, status=401)
-    # else:
-    #     return response.json({'message': 'Token is missing'}, status=401)
-   
-
-
-USERNAME_REGEX = r'^[a-zA-Z0-9]+$'
 @app.route('/register', methods=['GET', 'POST'])
 async def register_user(request):
     if request.method == 'GET':
@@ -176,98 +105,97 @@ async def register_user(request):
 
     data = request.form
 
-
-
     username = data.get('username')
     password = data.get('password')
     role = 'customer'
 
     if not username or not re.match(USERNAME_REGEX, username):
         return response.text('Invalid username' , status = 400)
-    
+
     if not password or len(password) < 8:
         return response.text('Password is short' , status = 400)
-    
+
+    try:
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+        hashed_password_str = hashed_password.decode('utf-8')
+    except Exception as e:
+        return response.text('Error hashing password', status=500)
+
     conn = await create_db_connection()
-    await conn.execute('INSERT INTO users (username, password,role) VALUES ($1, $2, $3)', username, password, role)
-    await conn.close()
+
+    user_exist = await conn.fetchval('SELECT COUNT(*) FROM users WHERE username = $1', username)
+    if user_exist:
+        return response.text('username already exist' , status = 400)
+
+    try:
+        await conn.execute('INSERT INTO users (username, password,role) VALUES ($1, $2, $3)', username, hashed_password_str, role)
+        await conn.close()
+    except Exception as e:
+        print(f'Error inserting user into database: {e}')
+        return response.text('Error registering user', status=500)
 
     return response.redirect('./login')
 
 
+@app.route('/get_filtered_components')
+async def get_filtered_components(request):
+    manufacturer = request.args.get('manufacturer')
+    sort_by = request.args.get('sort_by')
+    order = request.args.get('order')
+    page = int(request.args.get('page', 1))
+    per_page = 10
 
+    manufacturers = await get_manufacturers()
+    components = await get_components(manufacturer)
 
+    template = env.get_template('index.html')
+    return response.html(template.render(components=components, manufacturers=manufacturers, component_name=manufacturer, sort_by=sort_by, order=order, page=page))
 
-
-
-# def protected():
-#     def decorator(f):
-#         @wraps(f)
-#         async def decorated_function(request, *args, **kwargs):
-#             token = request.headers.get('Authorization')
-
-#             if not token:
-#                 return response.json({'message': 'Token is missing'}, status=401)
-        
-#             try:
-#                 payload = jwt.decode(token, app.config.SECRET, algorithms='HS256')
-#             except jwt.ExpiredSignatureError:
-#                 return response.json({'message' : 'Token is expired'} , status=401)
-#             except jwt.InvalidTokenError:
-#                 return response.json({'message' : 'Invalid token' }, status=401)
-        
-#             request['user'] = payload['username']
-#             return await f (request, *args, **kwargs)
-#         return decorated_function
-#     return decorator
-        
-
-@app.route('/success')
-@protected
-async def success(request):
-    return response.text('Login successful')
-
-@app.route('/failure')
-async def failure(request):
-    return response.text('Invalid username or password', status=401)
 
 @app.route('/add_product', methods=['POST'])
 async def add_product(request):
     data = request.form
-    name = data.get('name')
-    description = data.get('description')
+    component_name = data.get('component_name')
+    model = data.get('model')
+    manufacturer = data.get('manufacturer')
     price = data.get('price')
+    availability = data.get('availability')
 
-    if not (name and description and price):
+    if availability == True:
+        availability = True
+    else:
+        availability = False
+
+    if not (component_name and model and manufacturer and price):
         return response.text('Please provide all product details', status=400)
 
     conn = await create_db_connection()
     await conn.execute('''
-        INSERT INTO products (name, description, price)
-        VALUES ($1, $2, $3)
-    ''', name, description, price)
+        INSERT INTO components (component_name, model, manufacturer, price, availability)
+        VALUES ($1, $2, $3, $4, $5)
+    ''', component_name, model, manufacturer, price, availability)
     await conn.close()
 
-    return response.redirect('/profile')
+    return response.redirect('/admin/profile')
 
 
-@app.route('/delete_product/<product_id>', methods=['POST'])
-async def delete_product(request, product_id):
-    # Convert product_id to integer
-    product_id = int(product_id)
+app.route('/delete_users/<user_id>', methods=['POST'])
+async def delete_user(request, user_id):
+    user_id = int(user_id)
     conn = await create_db_connection()
-    await conn.execute('DELETE FROM products WHERE id = $1', product_id)
+    await conn.execute('DELETE FROM users WHERE id = $1', user_id)
     await conn.close()
-    return response.redirect('/profile')
+    return response.redirect('/admin/profile')
 
-
-
-# @app.get('/protected')
-# @protected()
-# async def protected_route(request):
-#     user = request['user']
-#     return response.json({'message' : f'hello {user}'}, status=200)
+@app.route('/delete_component/<component_id>', methods=['POST'])
+async def delete_product(request, component_id):
+    component_id = int(component_id)
+    conn = await create_db_connection()
+    await conn.execute('DELETE FROM components WHERE id = $1', component_id)
+    await conn.close()
+    return response.redirect('/admin/products')
 
 if __name__ == '__main__':
-    app.add_task(create_products_table())
-    app.run(host='0.0.0.0', port=8000)
+    # app.add_task(create_products_table())
+
+    app.run(host='0.0.0.0', port=8000, access_log=True, debug=True)

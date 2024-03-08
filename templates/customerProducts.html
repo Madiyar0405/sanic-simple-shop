@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        .component-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .component {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+
+        .component-info {
+            padding: 10px 0;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="user-info">
+        <a href="/customer/profile">{{ user['username'] }}</a>
+        <a href="/logout">logout</a>
+    </div>
+    <h1>Computer Components</h1>
+
+    <div class="component-container">
+        {% for component in components %}
+        <div class="component">
+            <div class="component-info">
+                <h2>{{ component['component_name'] }}</h2>
+                <p>{{ component['model'] }}</p>
+                <p>{{ component['manufacturer'] }}</p>
+                <p>Price: {{ component['price'] }}</p>
+                <p>Availability: {{ component['availability'] }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+</body>
+</html>

@@ -18,7 +18,7 @@
         h1 {
             text-align: center;
         }
-        .user-info {
+        .profile-info {
             margin-bottom: 20px;
         }
         .back-to-products {
@@ -52,34 +52,12 @@
 <body>
     <div class="container">
         <div class="user-info">
-            <a href="/admin/profile">{{ user['username'] }}</a>
-            <a class="back-to-products" href="/admin/products">Back to Products</a>
+            <a href="/customer/profile">{{ user['username'] }}</a>
+            <a class="back-to-products" href="/customer/products">Back to Products</a>
             <a href="/logout">logout</a>
         </div>
         <h1>User Profile</h1>
-            <h2>Add Product</h2>
-            <form action="/add_product" method="POST">
-                <label for="component_name">Component Name:</label>
-                <input type="text" id="component_name" name="component_name" required>
-                <label for="model">Model:</label>
-                <textarea id="model" name="model" required></textarea>
-                <label for="manufacturer">Manufacturer:</label>
-                <input type="text" id="manufacturer" name="manufacturer" required>
-                <label for="price">Price:</label>
-                <input type="text" id="price" name="price" required>
-                <label for="availability">Availability:</label>
-                <input type="text" id="availability" name="availability" required>
-                <input type="submit" value="Add Product">
-            </form>
-            <h2>Users</h2>
 
-            <div class="employee">
-                {% for employees in employee %}
-                <div class="user-info">
-                    <h3>{{ employees['username'] }} - {{ employees['role'] }}</h3>
-                </div>
-                {% endfor %}
-            </div>
     </div>
 </body>
 </html>
