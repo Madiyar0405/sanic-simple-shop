@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products</title>
     <style>
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -21,10 +22,10 @@
             text-align: center;
         }
 
-        .component-container {
+        .components-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            grid-gap: 20px;
         }
 
         .component {
@@ -42,27 +43,64 @@
             top: 10px;
             left: 10px;
         }
+
+        #manufacturer option {
+            font-size: 16px;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="user-info">
-        <a href="/customer/profile">{{ user['username'] }}</a>
+    <form id="filter-sort-form" action="/customer/products" method="POST">
+        <label for="manufacturer">Select Manufacturer:</label>
+        <select name="manufacturer" id="manufacturer">
+            <option value="">All</option>
+            {% for manufacturer in manufacturers %}
+            <option value="{{ manufacturer }}">{{ manufacturer }}</option>
+            {% endfor %}
+        </select>
+        <label for="component_name">Select name:</label>
+        <select name="component_name" id="component_name">
+            <option value="">All</option>
+            {% for names in component_name %}
+            <option value="{{ names }}">{{ names }}</option>
+            {% endfor %}
+        </select>
+        <select name="sort_by" id="sort_by">
+            <option value="price">price</option>
+        </select>
+        <select name="order" id="order">
+            <option value="asc">asc</option>
+            <option value="desc">desc</option>
+        </select>
+        <button type="submit">Filter</button>
+
+    </form>
+
+
+    <a href="/customer/profile">{{ user['username'] }}</a>
         <a href="/logout">logout</a>
-    </div>
     <h1>Computer Components</h1>
 
-    <div class="component-container">
+    <div class="components-container">
         {% for component in components %}
-        <div class="component">
-            <div class="component-info">
-                <h2>{{ component['component_name'] }}</h2>
-                <p>{{ component['model'] }}</p>
-                <p>{{ component['manufacturer'] }}</p>
-                <p>Price: {{ component['price'] }}</p>
-                <p>Availability: {{ component['availability'] }}</p>
+            <div class="component">
+                <div class="component-info">
+                    <h2>{{ component['component_name'] }}</h2>
+                    <p>{{ component['model'] }}</p>
+                    <p>{{ component['manufacturer'] }}</p>
+                    <p>Price: {{ component['price'] }}</p>
+                    {% if component['quantity'] == 0 %}
+                    <p>Availability: Out of stock</p>
+                    {% elif component['quantity'] > 0 %}
+                    <p>Availability: In stock</p>
+                    {% endif %}
+                </div>
             </div>
-        </div>
         {% endfor %}
     </div>
 

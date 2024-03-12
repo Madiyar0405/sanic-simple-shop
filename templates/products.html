@@ -94,7 +94,7 @@
                     <p>{{ component['model'] }}</p>
                     <p>{{ component['manufacturer'] }}</p>
                     <p>Price: {{ component['price'] }}</p>
-                    <p>Availability: {{ component['availability'] }}</p>
+                    <p>Availability: {{ component['quantity'] }}</p>
                 </div>
                 <form action="/delete_component/{{ component['id'] }}" method="POST">
                     <button type="submit">Delete</button>

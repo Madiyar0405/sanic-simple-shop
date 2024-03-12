@@ -9,12 +9,12 @@ from dotenv import load_dotenv
 import os
 from sanic.cookies import Cookie
 import bcrypt
+from sanic import Sanic
+from sanic.response import json
 
 from db import db
 from protected import create_token, protected
 import logging
-
-from server.data.repository.products import get_filtered_sorted_products, get_manufacturers
 
 load_dotenv()
 
@@ -148,6 +148,9 @@ async def register_user(request):
     return response.redirect('./login')
 
 
+
+
+
 # @app.route('/get_filtered_components')
 # async def get_filtered_components(request):
 #     manufacturer = request.args.get('manufacturer')
@@ -170,21 +173,18 @@ async def add_product(request):
     model = data.get('model')
     manufacturer = data.get('manufacturer')
     price = data.get('price')
-    availability = data.get('availability')
+    quantity_int = data.get('quantity')
+    quantity = int(quantity_int)
 
-    if availability == True:
-        availability = True
-    else:
-        availability = False
 
-    if not (component_name and model and manufacturer and price):
+    if not (component_name and model and manufacturer and price ):
         return response.text('Please provide all product details', status=400)
 
     conn = await create_db_connection()
     await conn.execute('''
-        INSERT INTO components (component_name, model, manufacturer, price, availability)
+        INSERT INTO components (component_name, model, manufacturer, price, quantity)
         VALUES ($1, $2, $3, $4, $5)
-    ''', component_name, model, manufacturer, price, availability)
+    ''', component_name, model, manufacturer, price, quantity)
     await conn.close()
 
     return response.redirect('/admin/profile')

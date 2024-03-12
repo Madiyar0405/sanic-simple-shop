@@ -6,11 +6,10 @@ from server.data.repository.products import get_products, get_manufacturers, get
 
 class ProductsView(BaseView):
 
-    async def get(self, request, user, sort_by=None, order=None):
+    async def get(self, request, user, sort_by=None,order = None):
         manufacturers = await get_manufacturers()
         component_name = await get_component_name()
         component = await get_products()
-        print(sort_by, order)
         price = await get_filtered_sorted_products(sort_by=sort_by, order=order)
 
         return self.http_success('./products.html', user=user, components=component, manufacturers=manufacturers, component_name=component_name, price=price)
@@ -20,7 +19,6 @@ class ProductsView(BaseView):
         component_name = request.form.get('component_name')
         sort_by = request.form.get('sort_by')
         order = request.form.get('order')
-        print(sort_by, order)
         components = await get_filtered_sorted_products(manufacturer=manufacturer, component_name=component_name, sort_by=sort_by, order=order)
         manufacturers = await get_manufacturers()
         component_name = await get_component_name()
