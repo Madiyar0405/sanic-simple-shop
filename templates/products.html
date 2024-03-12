@@ -45,17 +45,17 @@
         }
 
         #manufacturer option {
-            font-size: 16px; /* Размер шрифта */
-            color: #333; /* Цвет текста */
-            background-color: #fff; /* Цвет фона */
-            border: 1px solid #ccc; /* Граница */
-            padding: 5px 10px; /* Отступы внутри элемента */
+            font-size: 16px;
+            color: #333;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
         }
     </style>
 </head>
 <body>
 <div class="container">
-    <form action="/admin/products" method="POST">
+    <form id="filter-sort-form" action="/admin/products" method="POST">
         <label for="manufacturer">Select Manufacturer:</label>
         <select name="manufacturer" id="manufacturer">
             <option value="">All</option>
@@ -63,18 +63,27 @@
             <option value="{{ manufacturer }}">{{ manufacturer }}</option>
             {% endfor %}
         </select>
+        <label for="component_name">Select name:</label>
+        <select name="component_name" id="component_name">
+            <option value="">All</option>
+            {% for names in component_name %}
+            <option value="{{ names }}">{{ names }}</option>
+            {% endfor %}
+        </select>
+        <select name="sort_by" id="sort_by">
+            <option value="price">price</option>
+        </select>
+        <select name="order" id="order">
+            <option value="asc">asc</option>
+            <option value="desc">desc</option>
+        </select>
         <button type="submit">Filter</button>
+
     </form>
 
 
-    <div class="user-info">
-        <p>Component Name: {{ component_name }}</p>
-        <p>Sort By: {{ sort_by }}</p>
-        <p>Order: {{ order }}</p>
-        <p>Page: {{ page }}</p>
-        <a href="/admin/profile">{{ user['username'] }}</a>
+    <a href="/admin/profile">{{ user['username'] }}</a>
         <a href="/logout">logout</a>
-    </div>
     <h1>Computer Components</h1>
 
     <div class="components-container">

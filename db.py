@@ -14,24 +14,6 @@ DATABASE_CONFIG = {
     'password': os.getenv("PASSWORD")
 }
 
-
-# async def create_db_connection() -> Connection:
-#     a = 'b'
-#     global db
-#     if db is None:
-#         db = await asyncpg.connect(**DATABASE_CONFIG)
-#     return db
-#
-#
-# async def close_db_connection():
-#     global db
-#     if db is None:
-#         return False
-#     await db.close()
-#     db = None
-#     return True
-
-
 class DB:
     pool = None
 
@@ -54,6 +36,21 @@ class DB:
         async with self.pool.acquire() as conn:
             print('fetch() ->', conn, args, kwargs)
             return await conn.fetch(*args, **kwargs)
+
+    async def fetchrow(self, *args, **kwargs):
+        async with self.pool.acquire() as conn:
+            print('fetchrow() ->', conn, args, kwargs)
+            return await conn.fetchrow(*args, **kwargs)
+
+    async def fetchval(self, *args, **kwargs):
+        async with self.pool.acquire() as conn:
+            print('fetchval() ->', conn, args, kwargs)
+            return await conn.fetchval(*args, **kwargs)
+
+    async def execute(self, *args, **kwargs):
+        async with self.pool.acquire() as conn:
+            print('execute() ->', conn, args, kwargs)
+            return await conn.execute(*args, **kwargs)
 
 
 db = DB()

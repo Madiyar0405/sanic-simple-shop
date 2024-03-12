@@ -1,16 +1,20 @@
-import logging
-import os
-import re
-
-import asyncpg
-import bcrypt
-from dotenv import load_dotenv
+from sanic import Blueprint, Sanic, response, text
 from jinja2 import Environment, FileSystemLoader
-from sanic import Sanic, response
+import asyncpg
+import re
+from functools import wraps
+import jwt
+from quart import redirect
+from dotenv import load_dotenv
+import os
+from sanic.cookies import Cookie
+import bcrypt
 
-from db import DB
-from protected import create_token
-from server.data.repository.products import get_manufacturers
+from db import db
+from protected import create_token, protected
+import logging
+
+from server.data.repository.products import get_filtered_sorted_products, get_manufacturers
 
 load_dotenv()
 
@@ -20,8 +24,6 @@ logging.basicConfig(level=logging.DEBUG)
 USERNAME_REGEX = r'^[a-zA-Z0-9]+$'
 
 app = Sanic(__name__)
-db = DB()
-
 
 app.config.SECRET = os.getenv("SECRET")
 
@@ -34,6 +36,9 @@ DATABASE_CONFIG = {
     'password': os.getenv("PASSWORD")
 }
 
+
+async def create_db_connection():
+    return await asyncpg.connect(**DATABASE_CONFIG)
 
 
 @app.before_server_start
@@ -76,9 +81,7 @@ async def login(request):
     if not username or not password:
         return response.json({'message': 'Username or password is missing'}, status=400)
 
-    conn = await db.connect()
-    user = await conn.fetchrow('SELECT * FROM users WHERE username = $1', username)
-
+    user = await db.fetchrow('SELECT * FROM users WHERE username = $1', username)
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
         token = create_token(user)
@@ -127,7 +130,8 @@ async def register_user(request):
         hashed_password_str = hashed_password.decode('utf-8')
     except Exception as e:
         return response.text('Error hashing password', status=500)
-    conn = await DB.connect()
+
+    conn = await create_db_connection()
 
     user_exist = await conn.fetchval('SELECT COUNT(*) FROM users WHERE username = $1', username)
     if user_exist:
@@ -144,21 +148,19 @@ async def register_user(request):
     return response.redirect('./login')
 
 
-@app.route('/get_filtered_components')
-async def get_filtered_components(request):
-    manufacturer = request.args.get('manufacturer')
-    sort_by = request.args.get('sort_by')
-    order = request.args.get('order')
-    page = int(request.args.get('page', 1))
-    per_page = 10
-
-    manufacturers = await get_manufacturers()
-    components = await get_components(manufacturer)
-
-    template = env.get_template('index.html')
-    return response.html(
-        template.render(components=components, manufacturers=manufacturers, component_name=manufacturer,
-                        sort_by=sort_by, order=order, page=page))
+# @app.route('/get_filtered_components')
+# async def get_filtered_components(request):
+#     manufacturer = request.args.get('manufacturer')
+#     sort_by = request.args.get('sort_by')
+#     order = request.args.get('order')
+#     page = int(request.args.get('page', 1))
+#     per_page = 10
+#
+#     manufacturers = await get_manufacturers()
+#     components = await get_components(manufacturer)
+#
+#     template = env.get_template('index.html')
+#     return response.html(template.render(components=components, manufacturers=manufacturers, component_name=manufacturer, sort_by=sort_by, order=order, page=page))
 
 
 @app.route('/add_product', methods=['POST'])
@@ -178,7 +180,7 @@ async def add_product(request):
     if not (component_name and model and manufacturer and price):
         return response.text('Please provide all product details', status=400)
 
-    conn = await db.connect()
+    conn = await create_db_connection()
     await conn.execute('''
         INSERT INTO components (component_name, model, manufacturer, price, availability)
         VALUES ($1, $2, $3, $4, $5)
@@ -193,7 +195,7 @@ app.route('/delete_users/<user_id>', methods=['POST'])
 
 async def delete_user(request, user_id):
     user_id = int(user_id)
-    conn = await db.connect()
+    conn = await create_db_connection()
     await conn.execute('DELETE FROM users WHERE id = $1', user_id)
     await conn.close()
     return response.redirect('/admin/profile')
@@ -202,7 +204,7 @@ async def delete_user(request, user_id):
 @app.route('/delete_component/<component_id>', methods=['POST'])
 async def delete_product(request, component_id):
     component_id = int(component_id)
-    conn = await db.connect()
+    conn = await create_db_connection()
     await conn.execute('DELETE FROM components WHERE id = $1', component_id)
     await conn.close()
     return response.redirect('/admin/products')
