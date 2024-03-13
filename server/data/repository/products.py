@@ -1,4 +1,5 @@
 from db import db
+from protected import protected
 
 
 async def create_products_table():
@@ -35,6 +36,20 @@ async def get_manufacturers():
     manufacturers_records = await db.fetch('SELECT DISTINCT manufacturer FROM components')
     manufacturers = [record['manufacturer'] for record in manufacturers_records]
     return manufacturers
+
+
+@protected
+async def get_product_from_cart(request, user):
+    cart = await db.fetch('''
+        SELECT c.component_id, c.quantity, 
+               comp.component_name, comp.model, 
+               comp.manufacturer, comp.price
+        FROM cart AS c
+        JOIN components AS comp ON c.component_id = comp.id
+        WHERE c.user_id = $1
+    ''', user['id'])
+    return cart
+
 
 async def get_filtered_sorted_products(manufacturer=None, component_name=None, sort_by=None, order=None, page=1, per_page=10):
 

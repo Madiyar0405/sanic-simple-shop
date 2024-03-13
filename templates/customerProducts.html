@@ -84,6 +84,8 @@
 
     <a href="/customer/profile">{{ user['username'] }}</a>
         <a href="/logout">logout</a>
+    <a href="/customer/cart">Cart</a>
+
     <h1>Computer Components</h1>
 
     <div class="components-container">
@@ -100,6 +102,11 @@
                     <p>Availability: In stock</p>
                     {% endif %}
                 </div>
+                <form action="/add_to_cart/{{ component['id'] }}" method="POST">
+                    <input type="hidden" name="component_id" value="{{ component['id'] }}">
+                    <input type="number" name="quantity" value="1" min="1">
+                    <button type="submit">Add to Cart</button>
+                </form>
             </div>
         {% endfor %}
     </div>

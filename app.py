@@ -11,6 +11,10 @@ from sanic.cookies import Cookie
 import bcrypt
 from sanic import Sanic
 from sanic.response import json
+from sanic import Sanic, response
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import asyncio
+
 
 from db import db
 from protected import create_token, protected
@@ -19,6 +23,8 @@ import logging
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+scheduler = AsyncIOScheduler()
+
 logging.basicConfig(level=logging.DEBUG)
 
 USERNAME_REGEX = r'^[a-zA-Z0-9]+$'
@@ -106,6 +112,8 @@ async def logout(request):
     return response_obj
 
 
+
+
 @app.route('/register', methods=['GET', 'POST'])
 async def register_user(request):
     if request.method == 'GET':
@@ -147,25 +155,6 @@ async def register_user(request):
 
     return response.redirect('./login')
 
-
-
-
-
-# @app.route('/get_filtered_components')
-# async def get_filtered_components(request):
-#     manufacturer = request.args.get('manufacturer')
-#     sort_by = request.args.get('sort_by')
-#     order = request.args.get('order')
-#     page = int(request.args.get('page', 1))
-#     per_page = 10
-#
-#     manufacturers = await get_manufacturers()
-#     components = await get_components(manufacturer)
-#
-#     template = env.get_template('index.html')
-#     return response.html(template.render(components=components, manufacturers=manufacturers, component_name=manufacturer, sort_by=sort_by, order=order, page=page))
-
-
 @app.route('/add_product', methods=['POST'])
 async def add_product(request):
     data = request.form
@@ -189,28 +178,65 @@ async def add_product(request):
 
     return response.redirect('/admin/profile')
 
+@app.route('/add_to_cart/<component_id:int>', methods=['POST'])
+@protected
+async def add_to_cart(request, user, component_id: int):
+    data = request.form
+    quantity = int(data.get('quantity'))
 
-app.route('/delete_users/<user_id>', methods=['POST'])
+    if not (component_id and quantity):
+        return response.text('Please provide all required details', status=400)
 
+    conn = await create_db_connection()
+    await conn.execute('''
+        INSERT INTO cart (user_id, component_id, quantity)
+        VALUES ($1, $2, $3)
+    ''', user['id'], component_id, quantity)
+    await conn.close()
+
+    if user['role'] == 'admin':
+        return response.redirect('/admin/products')
+    else:
+        return response.redirect('/customer/products')
 
 async def delete_user(request, user_id):
     user_id = int(user_id)
-    conn = await create_db_connection()
-    await conn.execute('DELETE FROM users WHERE id = $1', user_id)
-    await conn.close()
+    await db.execute('DELETE FROM users WHERE id = $1', user_id)
     return response.redirect('/admin/profile')
 
 
 @app.route('/delete_component/<component_id>', methods=['POST'])
 async def delete_product(request, component_id):
     component_id = int(component_id)
-    conn = await create_db_connection()
-    await conn.execute('DELETE FROM components WHERE id = $1', component_id)
-    await conn.close()
+    await db.execute('DELETE FROM components WHERE id = $1', component_id)
     return response.redirect('/admin/products')
 
 
-if __name__ == '__main__':
-    # app.add_task(create_products_table())
+@app.route('/delete_from_cart/<component_id>', methods=['POST'])
+@protected
+async def delete_from_cart(request, component_id, user):
+    component_id = int(component_id)
+    await db.execute('DELETE FROM cart WHERE component_id = $1', component_id)
+    if user['role'] == 'admin':
+        return response.redirect('/admin/cart')
+    else:
+        return response.redirect('/customer/cart')
 
+async def remove_expired_items():
+    await db.execute('DELETE FROM cart WHERE added_at < NOW() - INTERVAL \'4 hours\'')
+
+scheduler.add_job(remove_expired_items, 'interval', hours=4)
+
+@app.listener('before_server_start')
+async def start_scheduler(app, loop):
+    scheduler.start()
+
+@app.listener('after_server_stop')
+async def stop_scheduler(app, loop):
+    scheduler.shutdown()
+
+
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, access_log=True, debug=True)

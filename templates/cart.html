@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cart</title>
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .cart-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-gap: 20px;
+        }
+
+        .cart {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #fff;
+        }
+
+        .cart-info {
+            padding: 10px;
+        }
+
+        .cart-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .cart-details {
+            margin-top: 10px;
+        }
+
+        .cart-detail {
+            margin-bottom: 5px;
+        }
+
+        .user-links {
+            margin-bottom: 20px;
+        }
+
+        .user-links a {
+            text-decoration: none;
+            color: #007bff;
+            margin-right: 10px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="user-links">
+        <a href="/admin/profile">{{ user['username'] }}</a>
+        <a href="/logout">Logout</a>
+    </div>
+    <h1>Cart</h1>
+    <div class="cart-container">
+        {% for cart_item in cart %}
+        <div class="cart">
+            <div class="cart-info">
+                <h2 class="cart-title">{{ cart_item['component_name'] }}</h2>
+                <div class="cart-details">
+                    <div class="cart-detail"><strong>Component ID:</strong> {{ cart_item['component_id'] }}</div>
+                    <div class="cart-detail"><strong>Quantity:</strong> {{ cart_item['quantity'] }}</div>
+                    <div class="cart-detail"><strong>Manufacturer:</strong> {{ cart_item['manufacturer'] }}</div>
+                    <div class="cart-detail"><strong>Model:</strong> {{ cart_item['model'] }}</div>
+                    <div class="cart-detail"><strong>Price:</strong> ${{ cart_item['price'] }}</div>
+
+            <form class="delete-form" action="/delete_from_cart/{{ cart_item['component_id'] }}" method="POST">
+                <button type="submit">Delete</button>
+                </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+</body>
+</html>

@@ -84,22 +84,28 @@
 
     <a href="/admin/profile">{{ user['username'] }}</a>
         <a href="/logout">logout</a>
+    <a href="/admin/cart">cart</a>
     <h1>Computer Components</h1>
 
     <div class="components-container">
         {% for component in components %}
-            <div class="component">
-                <div class="component-info">
-                    <h2>{{ component['component_name'] }}</h2>
-                    <p>{{ component['model'] }}</p>
-                    <p>{{ component['manufacturer'] }}</p>
-                    <p>Price: {{ component['price'] }}</p>
-                    <p>Availability: {{ component['quantity'] }}</p>
-                </div>
-                <form action="/delete_component/{{ component['id'] }}" method="POST">
-                    <button type="submit">Delete</button>
-                </form>
+        <div class="component">
+            <div class="component-info">
+                <h2>{{ component['component_name'] }}</h2>
+                <p>{{ component['model'] }}</p>
+                <p>{{ component['manufacturer'] }}</p>
+                <p>Price: {{ component['price'] }}</p>
+                <p>Availability: {{ component['quantity'] }}</p>
             </div>
+            <form action="/add_to_cart/{{ component['id'] }}" method="POST">
+                <input type="hidden" name="component_id" value="{{ component['id'] }}">
+                <input type="number" name="quantity" value="1" min="1">
+                <button type="submit">Add to Cart</button>
+            </form>
+            <form action="/delete_component/{{ component['id'] }}" method="POST">
+                <button type="submit">Delete</button>
+            </form>
+        </div>
         {% endfor %}
     </div>
 
