@@ -9,77 +9,113 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f5f5f5;
         }
+
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 20px auto;
             padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        h1 {
+
+        h1, h2 {
             text-align: center;
+            color: #333;
         }
+
         .user-info {
             margin-bottom: 20px;
+            text-align: center;
         }
+
         .back-to-products {
-            position: absolute;
-            top: 10px;
-            left: 10px;
+            display: inline-block;
+            margin-right: 10px;
+            color: #4CAF50;
+            text-decoration: none;
         }
+
+        .back-to-products:hover {
+            text-decoration: underline;
+        }
+
         form {
             margin-top: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
+            color: #333;
         }
+
         input[type="text"],
+        input[type="number"],
         textarea {
             width: 100%;
             padding: 8px;
             margin-bottom: 10px;
             box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
         }
+
         input[type="submit"] {
             background-color: #4CAF50;
             color: white;
             padding: 10px 20px;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        .employee {
+            margin-top: 20px;
+        }
+
+        .employee h3 {
+            margin-bottom: 5px;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="user-info">
-            <a href="/admin/profile">{{ user['username'] }}</a>
             <a class="back-to-products" href="/admin/products">Back to Products</a>
-            <a href="/logout">logout</a>
+            <a href="/logout">Logout</a>
         </div>
         <h1>User Profile</h1>
-            <h2>Add Product</h2>
-            <form action="/add_product" method="POST">
-                <label for="component_name">Component Name:</label>
-                <input type="text" id="component_name" name="component_name" required>
-                <label for="model">Model:</label>
-                <textarea id="model" name="model" required></textarea>
-                <label for="manufacturer">Manufacturer:</label>
-                <input type="text" id="manufacturer" name="manufacturer" required>
-                <label for="price">Price:</label>
-                <input type="text" id="price" name="price" required>
-                <label for="quantity">quantity:</label>
-                <input type="number" id="quantity" name="quantity" required>
-                <input type="submit" value="Add Product">
-            </form>
-            <h2>Users</h2>
-
-            <div class="employee">
-                {% for employees in employee %}
-                <div class="user-info">
-                    <h3>{{ employees['username'] }} - {{ employees['role'] }}</h3>
-                </div>
-                {% endfor %}
+        <h2>Add Product</h2>
+        <form action="/add_product" method="POST">
+            <label for="component_name">Component Name:</label>
+            <input type="text" id="component_name" name="component_name" required>
+            <label for="model">Model:</label>
+            <textarea id="model" name="model" required></textarea>
+            <label for="manufacturer">Manufacturer:</label>
+            <input type="text" id="manufacturer" name="manufacturer" required>
+            <label for="price">Price:</label>
+            <input type="text" id="price" name="price" required>
+            <label for="quantity">Quantity:</label>
+            <input type="number" id="quantity" name="quantity" required>
+            <input type="submit" value="Add Product">
+        </form>
+        <h2>Users</h2>
+        <div class="employee">
+            {% for employees in employee %}
+            <div class="user-info">
+                <h3>{{ employees['username'] }} - {{ employees['role'] }}</h3>
             </div>
+            {% endfor %}
+        </div>
     </div>
 </body>
 </html>

@@ -5,21 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products</title>
     <style>
-
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
         }
 
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 20px auto;
             padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         h1 {
             text-align: center;
+            margin-bottom: 20px;
         }
 
         .components-container {
@@ -32,29 +37,77 @@
             border: 1px solid #ccc;
             border-radius: 5px;
             padding: 10px;
+            background-color: #fff;
         }
 
         .component-info {
             padding: 10px 0;
         }
 
-        .user-info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
+        .component-info h2 {
+            margin-bottom: 5px;
+            font-size: 18px;
         }
 
-        #manufacturer option {
-            font-size: 16px;
-            color: #333;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            padding: 5px 10px;
+        .component-info p {
+            margin: 5px 0;
+        }
+
+        form {
+            margin-top: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        select, input[type="number"] {
+            width: calc(100% - 10px);
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        button[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        .user-info {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        .user-info a {
+            text-decoration: none;
+            color: #007bff;
+            margin-right: 10px;
+        }
+
+        .user-info a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
 <div class="container">
+    <div class="user-info">
+        <a href="/customer/profile">{{ user['username'] }}</a>
+        <a href="/logout">Logout</a>
+        <a href="/customer/cart">Cart</a>
+    </div>
+    <h1>Computer Components</h1>
+
     <form id="filter-sort-form" action="/customer/products" method="POST">
         <label for="manufacturer">Select Manufacturer:</label>
         <select name="manufacturer" id="manufacturer">
@@ -63,51 +116,45 @@
             <option value="{{ manufacturer }}">{{ manufacturer }}</option>
             {% endfor %}
         </select>
-        <label for="component_name">Select name:</label>
+        <label for="component_name">Select Name:</label>
         <select name="component_name" id="component_name">
             <option value="">All</option>
             {% for names in component_name %}
             <option value="{{ names }}">{{ names }}</option>
             {% endfor %}
         </select>
+        <label for="sort_by">Sort By:</label>
         <select name="sort_by" id="sort_by">
-            <option value="price">price</option>
+            <option value="price">Price</option>
         </select>
+        <label for="order">Order:</label>
         <select name="order" id="order">
-            <option value="asc">asc</option>
-            <option value="desc">desc</option>
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
         </select>
         <button type="submit">Filter</button>
-
     </form>
-
-
-    <a href="/customer/profile">{{ user['username'] }}</a>
-        <a href="/logout">logout</a>
-    <a href="/customer/cart">Cart</a>
-
-    <h1>Computer Components</h1>
 
     <div class="components-container">
         {% for component in components %}
-            <div class="component">
-                <div class="component-info">
-                    <h2>{{ component['component_name'] }}</h2>
-                    <p>{{ component['model'] }}</p>
-                    <p>{{ component['manufacturer'] }}</p>
-                    <p>Price: {{ component['price'] }}</p>
-                    {% if component['quantity'] == 0 %}
-                    <p>Availability: Out of stock</p>
-                    {% elif component['quantity'] > 0 %}
-                    <p>Availability: In stock</p>
-                    {% endif %}
-                </div>
-                <form action="/add_to_cart/{{ component['id'] }}" method="POST">
-                    <input type="hidden" name="component_id" value="{{ component['id'] }}">
-                    <input type="number" name="quantity" value="1" min="1">
-                    <button type="submit">Add to Cart</button>
-                </form>
+        <div class="component">
+            <div class="component-info">
+                <h2>{{ component['component_name'] }}</h2>
+                <p>{{ component['model'] }}</p>
+                <p>{{ component['manufacturer'] }}</p>
+                <p>Price: {{ component['price'] }}</p>
+                {% if component['quantity'] == 0 %}
+                <p>Availability: Out of stock</p>
+                {% elif component['quantity'] > 0 %}
+                <p>Availability: In stock</p>
+                {% endif %}
             </div>
+            <form action="/add_to_cart/{{ component['id'] }}" method="POST">
+                <input type="hidden" name="component_id" value="{{ component['id'] }}">
+                <input type="number" name="quantity" value="1" min="1">
+                <button type="submit">Add to Cart</button>
+            </form>
+        </div>
         {% endfor %}
     </div>
 

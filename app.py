@@ -14,6 +14,19 @@ from sanic.response import json
 from sanic import Sanic, response
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
+from aio_pika import connect_robust, Message
+
+
+async def send_to_rabbitmq():
+    connection = await connect_robust("amqp://guest:guest@localhost/")
+    async with connection:
+        channel = await connection.channel()
+
+        await channel.default_exchange.publish(
+            Message(body=b"Buy all products"),
+            routing_key="purchase_queue"
+        )
+
 
 
 from db import db
@@ -155,6 +168,12 @@ async def register_user(request):
 
     return response.redirect('./login')
 
+
+@app.route('/buy_all_products', methods=['POST'])
+async def buy_all_products(request):
+    await send_to_rabbitmq()
+
+    return response.text('RRR')
 @app.route('/add_product', methods=['POST'])
 async def add_product(request):
     data = request.form
@@ -212,11 +231,11 @@ async def delete_product(request, component_id):
     return response.redirect('/admin/products')
 
 
-@app.route('/delete_from_cart/<component_id>', methods=['POST'])
+@app.route('/delete_from_cart/<cart_id>', methods=['POST'])
 @protected
-async def delete_from_cart(request, component_id, user):
-    component_id = int(component_id)
-    await db.execute('DELETE FROM cart WHERE component_id = $1', component_id)
+async def delete_from_cart(request, user, cart_id):
+    cart_id = int(cart_id)
+    await db.execute('DELETE FROM cart WHERE cart_id = $1', cart_id)
     if user['role'] == 'admin':
         return response.redirect('/admin/cart')
     else:

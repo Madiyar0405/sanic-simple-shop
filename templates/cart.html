@@ -57,12 +57,47 @@
 
         .user-links {
             margin-bottom: 20px;
+            text-align: right;
         }
 
         .user-links a {
             text-decoration: none;
             color: #007bff;
             margin-right: 10px;
+        }
+
+        .delete-form {
+            display: inline;
+        }
+
+        .delete-form button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .delete-form button:hover {
+            background-color: #c82333;
+        }
+
+        .buy-all-products-form {
+            text-align: center;
+        }
+
+        .buy-all-products-form button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        .buy-all-products-form button:hover {
+            background-color: #218838;
         }
 
     </style>
@@ -85,15 +120,17 @@
                     <div class="cart-detail"><strong>Manufacturer:</strong> {{ cart_item['manufacturer'] }}</div>
                     <div class="cart-detail"><strong>Model:</strong> {{ cart_item['model'] }}</div>
                     <div class="cart-detail"><strong>Price:</strong> ${{ cart_item['price'] }}</div>
-
-            <form class="delete-form" action="/delete_from_cart/{{ cart_item['component_id'] }}" method="POST">
-                <button type="submit">Delete</button>
-                </form>
                 </div>
+                <form class="delete-form" action="/delete_from_cart/{{ cart_item['cart_id'] }}" method="POST">
+                    <button type="submit">Delete</button>
+                </form>
             </div>
         </div>
         {% endfor %}
     </div>
+    <form class="buy-all-products-form" action="/buy_all_products" method="POST">
+        <button type="submit">Купить все продукты</button>
+    </form>
 </div>
 </body>
 </html>

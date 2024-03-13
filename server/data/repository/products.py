@@ -41,7 +41,7 @@ async def get_manufacturers():
 @protected
 async def get_product_from_cart(request, user):
     cart = await db.fetch('''
-        SELECT c.component_id, c.quantity, 
+        SELECT c.cart_id, c.component_id, c.quantity, 
                comp.component_name, comp.model, 
                comp.manufacturer, comp.price
         FROM cart AS c

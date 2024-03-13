@@ -86,7 +86,7 @@
                     <div class="cart-detail"><strong>Model:</strong> {{ cart_item['model'] }}</div>
                     <div class="cart-detail"><strong>Price:</strong> ${{ cart_item['price'] }}</div>
 
-            <form class="delete-form" action="/delete_from_cart/{{ cart_item['component_id'] }}" method="POST">
+            <form class="delete-form" action="/delete_from_cart/{{ cart_item['cart_id'] }}" method="POST">
                 <button type="submit">Delete</button>
                 </form>
                 </div>
