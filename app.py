@@ -4,7 +4,6 @@ import asyncpg
 import re
 from functools import wraps
 import jwt
-from quart import redirect
 from dotenv import load_dotenv
 import os
 from sanic.cookies import Cookie
@@ -12,7 +11,6 @@ import bcrypt
 from sanic import Sanic
 from sanic.response import json
 from sanic import Sanic, response
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import asyncio
 from aio_pika import connect_robust, Message
 
@@ -36,7 +34,6 @@ import logging
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-scheduler = AsyncIOScheduler()
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -47,17 +44,6 @@ app = Sanic(__name__)
 app.config.SECRET = os.getenv("SECRET")
 
 env = Environment(loader=FileSystemLoader('templates'))
-
-DATABASE_CONFIG = {
-    'host': os.getenv("HOST"),
-    'database': os.getenv("DATABASE"),
-    'user': os.getenv("USER"),
-    'password': os.getenv("PASSWORD")
-}
-
-
-async def create_db_connection():
-    return await asyncpg.connect(**DATABASE_CONFIG)
 
 
 @app.before_server_start
@@ -152,16 +138,14 @@ async def register_user(request):
     except Exception as e:
         return response.text('Error hashing password', status=500)
 
-    conn = await create_db_connection()
 
-    user_exist = await conn.fetchval('SELECT COUNT(*) FROM users WHERE username = $1', username)
+    user_exist = await db.fetchval('SELECT COUNT(*) FROM users WHERE username = $1', username)
     if user_exist:
         return response.text('username already exist', status=400)
 
     try:
-        await conn.execute('INSERT INTO users (username, password,role) VALUES ($1, $2, $3)', username,
+        await db.execute('INSERT INTO users (username, password,role) VALUES ($1, $2, $3)', username,
                            hashed_password_str, role)
-        await conn.close()
     except Exception as e:
         print(f'Error inserting user into database: {e}')
         return response.text('Error registering user', status=500)
@@ -206,12 +190,10 @@ async def add_to_cart(request, user, component_id: int):
     if not (component_id and quantity):
         return response.text('Please provide all required details', status=400)
 
-    conn = await create_db_connection()
-    await conn.execute('''
+    await db.execute('''
         INSERT INTO cart (user_id, component_id, quantity)
         VALUES ($1, $2, $3)
     ''', user['id'], component_id, quantity)
-    await conn.close()
 
     if user['role'] == 'admin':
         return response.redirect('/admin/products')
@@ -242,17 +224,12 @@ async def delete_from_cart(request, user, cart_id):
         return response.redirect('/customer/cart')
 
 async def remove_expired_items():
-    await db.execute('DELETE FROM cart WHERE added_at < NOW() - INTERVAL \'4 hours\'')
+    while True:
+        await asyncio.sleep(3600)
+        await db.execute('DELETE FROM cart WHERE added_at < NOW() - INTERVAL \'4 hours\'')
 
-scheduler.add_job(remove_expired_items, 'interval', hours=4)
+app.add_task(remove_expired_items())
 
-@app.listener('before_server_start')
-async def start_scheduler(app, loop):
-    scheduler.start()
-
-@app.listener('after_server_stop')
-async def stop_scheduler(app, loop):
-    scheduler.shutdown()
 
 
 

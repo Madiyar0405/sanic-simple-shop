@@ -15,6 +15,12 @@ async def create_products_table():
     ''')
 
 
+async def add_user(username, hashed_password_str, role):
+    users = await db.execute('')
+
+
+
+
 
 async def get_products():
     components = await db.fetch('SELECT * FROM components')

@@ -1,13 +1,10 @@
-from sanic import Blueprint, Sanic, response, text
-from sanic_jwt import initialize, exceptions
-from sanic_jwt.decorators import protected
-from functools import wraps
-import jwt
-from quart import redirect
-from dotenv import load_dotenv
-from sanic.cookies import Cookie
 import logging
 import os
+from functools import wraps
+import jwt
+from dotenv import load_dotenv
+from sanic import text
+
 
 
 logger = logging.getLogger(__name__)
@@ -63,3 +60,12 @@ def protected(wrapped):
         return decorated_function
 
     return decorator(wrapped)
+
+
+
+
+
+
+
+
+

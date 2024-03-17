@@ -1,4 +1,3 @@
-from sanic.response import empty
 
 from server.admin.base import BaseView
 from server.data.repository.products import get_products, get_manufacturers, get_filtered_sorted_products, get_component_name
@@ -6,7 +5,7 @@ from server.data.repository.products import get_products, get_manufacturers, get
 
 class ProductsView(BaseView):
 
-    async def get(self, request, user, sort_by=None,order = None):
+    async def get(self, request, user, sort_by=None, order=None):
         manufacturers = await get_manufacturers()
         component_name = await get_component_name()
         component = await get_products()
@@ -15,6 +14,7 @@ class ProductsView(BaseView):
         return self.http_success('./products.html', user=user, components=component, manufacturers=manufacturers, component_name=component_name, price=price)
 
     async def post(self, request, user):
+
         manufacturer = request.form.get('manufacturer')
         component_name = request.form.get('component_name')
         sort_by = request.form.get('sort_by')
